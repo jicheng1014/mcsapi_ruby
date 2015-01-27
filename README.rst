@@ -28,7 +28,7 @@ Ruby SDK
 使用Ruby SDK
 -------------
 
-通过MOS::Client生成客户端实例，API接口说明实现参见Ruby SDK API doc文档 
+通过MOS::Client生成客户端实例，API接口说明实现参见 `Ruby SDK API doc文档 <http://mtmos.com/v1/mss_a9564ab5d57a4fc183232162004ade09/rubyapidoc/MOS/Client.html>`_ 。
 
 示例代码如下：
 
@@ -44,4 +44,3 @@ Ruby SDK
 
         balance = cli.get_balance()
         puts balance
-
