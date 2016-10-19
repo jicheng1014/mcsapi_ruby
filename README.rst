@@ -40,7 +40,7 @@ Ruby SDK
         secret = 'MOS_ACCESS_SECRET'
         url = 'MOS_ACCESS_URL'
 
-        cli = MOS::Client(key, secret, url)
+        cli = MOS::Client.new(key, secret, url)
 
         balance = cli.get_balance()
         puts balance
