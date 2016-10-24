@@ -23,17 +23,17 @@ class MOS::Base
   # - @param [String] format  默认为xml格式
   # - @param [Integer] timeout
   # - @param [] debug
-  def initialize(access, secret, url, format='xml', timeout=300, debug=false)
-    @access=access
-    @secret=secret
-    @url=url
-    @format=format
-    @timeout=timeout
-    @debug=debug
+  def initialize(access, secret, url, format = 'xml', timeout = 300, debug = false)
+    @access = access
+    @secret = secret
+    @url = url
+    @format = format
+    @timeout = timeout
+    @debug = debug
   end
 
   def raw_request(action, *kwargs)
-    self._request(action, *kwargs)
+    _request(action, *kwargs)
   end
 
   # 处理请求函数
@@ -43,14 +43,14 @@ class MOS::Base
   def _request(action, *kwargs)
     params = {}
     params['Action'] = action
-    params['AWSAccessKeyId'] = self.access
+    params['AWSAccessKeyId'] = access
     params['Timestamp'] = Time.now.strftime("%Y-%m-%dT%H:%M:%S.000Z")
     params['SignatureVersion'] = '2'
     params['SignatureMethod'] = 'HmacSHA256'
 
     unless kwargs.empty?
       kwargs.each do |k, v|
-        if v.kind_of?(Array)
+        if v.is_a?(Array)
           i = 1
           v.each do |vi|
             params['%s.%d' % [k, i]] = vi
@@ -62,40 +62,43 @@ class MOS::Base
       end
     end
 
-    params['Format'] = self.format if self.format
-    sig = self.get_signature(params)
+    #  params['Format'] = self.format if self.format
+    sig = get_signature(params)
     params['Signature'] = sig
     headers = {}
     headers['User-Agent'] = 'ruby-mosclient'
+    headers['Content-Type'] = 'application/x-www-form-urlencoded'
     data = URI.encode_www_form(params)
-    puts self.url + '?' + data if self.debug
+    puts url + '?' + data if debug
 
-    uri = URI.parse(self.url)
+    uri = URI.parse(url)
     http = Net::HTTP.new(uri.host, uri.port)
-    http.open_timeout=@timeout
-    if (uri.scheme == 'https')
-      http.use_ssl=true
+    http.open_timeout = @timeout
+    if uri.scheme == 'https'
+      http.use_ssl = true
       http.verify_mode = OpenSSL::SSL::VERIFY_NONE
     end
-    http.request_post('/', data, headers)
+    request = Net::HTTP::Post.new(url)
+    request.body = data
+    http.request(request)
   end
 
   # 签名函数
   # - @param [Hash] params  签名参数
   # - @return [String]  签名处理结果
-  def get_signature(params) #signature method
-    req = URI.parse(self.url)
+  def get_signature(params) # signature method
+    req = URI.parse(url)
     host = req.host
     endpoint = host + ':' + req.port.to_s
     path = req.path
     path = '/' if req.path == ''
-    cred_dict = {'access' => self.access,
-                 'host' => endpoint,
-                 'verb' => 'POST',
-                 'path' => path,
-                 'params' => params,
-    }
-    params=Hash[params.sort]
+    cred_dict = { 'access' => access,
+                  # 'host' => endpoint,
+                  'host' => host,
+                  'verb' => 'POST',
+                  'path' => path,
+                  'params' => params }
+    params = Hash[params.sort]
     sha256_hmac(string_to_sign(cred_dict, params))
   end
 
@@ -105,10 +108,10 @@ class MOS::Base
   # - @return [String]  格式化结果
   def string_to_sign(cred_dict, params)
     [
-        cred_dict['verb'],
-        cred_dict['host'],
-        cred_dict['path'],
-        URI.encode_www_form(params),
+      cred_dict['verb'],
+      cred_dict['host'],
+      cred_dict['path'],
+      URI.encode_www_form(params)
     ].join("\n")
   end
 
@@ -117,7 +120,7 @@ class MOS::Base
   # - @return [String]  加密结果
   def sha256_hmac(value)
     Base64.encode64(
-        OpenSSL::HMAC.digest(OpenSSL::Digest.new('sha256'), self.secret, value)
+      OpenSSL::HMAC.digest(OpenSSL::Digest.new('sha256'), secret, value)
     ).strip
   end
 
@@ -126,13 +129,11 @@ class MOS::Base
   # - @param [Hash] kwargs  函数调用参数
   # - @return [Hash]  返回函数调用结果
   def request(action, *kwargs)
-    resp = self._request(action, *kwargs)
+    resp = _request(action, *kwargs)
     body = resp.body
-    if self.debug
-      puts body
-    end
+    puts body if debug
 
-    # todo begin 中if...else  执行else
+    # TODO: begin 中if...else  执行else
     begin
       if resp.header['Content-Type'].start_with?('application/json')
         body = JSON.parse(body)
@@ -157,7 +158,7 @@ class MOS::Base
       fidx = 1
       filters.each do |k, vs|
         kwargs['Filter.%d.Name' % fidx] = k
-        vs = [vs] unless vs.kind_of?(Array)
+        vs = [vs] unless vs.is_a?(Array)
         vidx = 1
         vs.each do |v|
           kwargs['Filter.%d.Value.%d' % [fidx, vidx]] = v
@@ -167,6 +168,4 @@ class MOS::Base
       end
     end
   end
-
 end
-

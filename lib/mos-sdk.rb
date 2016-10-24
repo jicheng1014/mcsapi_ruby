@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-$:.unshift File.join(File.dirname(__FILE__), '.', 'mos-sdk')
+$LOAD_PATH.unshift File.join(File.dirname(__FILE__), '.', 'mos-sdk')
 require 'base.rb'
 
 module MOS
@@ -10,7 +10,7 @@ end
 # 基类函数为Base，mos-sdk的实现类
 class MOS::Client
   # 构造函数
-  def initialize(access, secret, url, format='xml', timeout=300, debug=false)
+  def initialize(access, secret, url, format = 'xml', timeout = 300, debug = false)
     super(access, secret, url, format, timeout, debug)
   end
 
@@ -19,24 +19,24 @@ class MOS::Client
   # - @param [Integer] offset 返回偏移量，用于分页控制
   # - @param [Hash] filters 过滤条件，key/value分别指定过滤字段名称和值，支持的字段名称为：name, status
   # - @return [Hash] 所有虚拟机信息
-  def describe_instance_types(limit=0, offset=0, filters=nil)
+  def describe_instance_types(limit = 0, offset = 0, filters = nil)
     kwargs = {}
-    self.parse_array_params(limit, offset, filters, kwargs) # parse_list_params  父类函数
-    val = self.request('DescribeInstanceTypes', *kwargs)
+    parse_array_params(limit, offset, filters, kwargs) # parse_list_params  父类函数
+    val = request('DescribeInstanceTypes', *kwargs)
     val['InstanceTypeSet']
   end
 
   # 获得所有虚拟机模板
   # - @return [Hash] 模板列表
-  def describe_templates()
-    val = self.request('DescribeTemplates')
+  def describe_templates
+    val = request('DescribeTemplates')
     val['TemplateSet']
   end
 
   # 获取帐户余额和最近更新时间
   # - @return [Hash] 帐户余额和最近更新时间
-  def get_balance()
-    self.request('GetBalance')
+  def get_balance
+    request('GetBalance')
   end
 
   # 获得所有虚拟机
@@ -46,12 +46,12 @@ class MOS::Client
   # - @param [Integer] offset 返回虚拟机的偏移量，用于分页显示
   # - @param [Hash] filters  过滤器，一个hash，包含过滤字段名和值，可能过滤字段为：name, status
   # - @return [Hash] 虚拟机列表
-  def describe_instances(ids=nil, names=nil, limit=0, offset=0, filters=nil)
+  def describe_instances(ids = nil, names = nil, limit = 0, offset = 0, filters = nil)
     kwargs = {}
-    kwargs['InstanceId'] = ids if ids.kind_of?(Array) && ids.size() > 0
-    kwargs['InstanceName'] = names if names.kind_of?(Array) && names.size() > 0
-    self.parse_array_params(limit, offset, filters, kwargs)
-    val = self.request('DescribeInstances', *kwargs)
+    kwargs['InstanceId'] = ids if ids.is_a?(Array) && !ids.empty?
+    kwargs['InstanceName'] = names if names.is_a?(Array) && !names.empty?
+    parse_array_params(limit, offset, filters, kwargs)
+    val = request('DescribeInstances', *kwargs)
     val['InstanceSet']
   end
 
@@ -61,11 +61,11 @@ class MOS::Client
   # - @param [Integer] offset 返回的偏移量，用于分页控制
   # - @param [Hash] filters 返回结果过滤条件，由hash的key/value指定过滤字段名和值
   # - @return [Hash] 指定虚拟机磁盘列表
-  def describe_instance_volumes(iid, limit=0, offset=0, filters=nil)
+  def describe_instance_volumes(iid, limit = 0, offset = 0, filters = nil)
     kwargs = {}
     kwargs['InstanceId'] = iid
-    self.parse_array_params(limit, offset, filters, kwargs)
-    val = self.request('DescribeInstanceVolumes', *kwargs)
+    parse_array_params(limit, offset, filters, kwargs)
+    val = request('DescribeInstanceVolumes', *kwargs)
     val['InstanceVolumeSet']
   end
 
@@ -75,24 +75,24 @@ class MOS::Client
   # - @param [Integer] offset 返回的偏移量，用于分页控制
   # - @param [Hash] filters 返回结果过滤条件，由hash的key/value指定过滤字段名和值
   # - @return [Hash] 指定虚拟机的网络接口（虚拟网卡）信息
-  def describe_network_interfaces(iid, limit=0, offset=0, filters=nil)
+  def describe_network_interfaces(iid, limit = 0, offset = 0, filters = nil)
     kwargs = {}
     kwargs['InstanceId'] = iid
-    self.parse_array_params(limit, offset, filters, kwargs)
-    val = self.request('DescribeInstanceNetworkInterfaces', *kwargs)
+    parse_array_params(limit, offset, filters, kwargs)
+    val = request('DescribeInstanceNetworkInterfaces', *kwargs)
     val['InstanceNetworkInterfaceSet']
   end
 
   # 虚拟机租期续费
   # - @param [String] iid  虚拟机ID
   # - @param [String] duration 续费租期，缺省为'1M'，即一个月
-  def renew_instance(iid, duration=nil)
+  def renew_instance(iid, duration = nil)
     kwargs = {}
     kwargs['InstanceId'] = iid
     unless duration.nil?
-      (/^\d+[HhMm]$/.match(duration)) ? (kwargs['Duration'] = duration) : (raise Exception("Illegal duration %s" % duration))
+      /^\d+[HhMm]$/ =~ duration ? (kwargs['Duration'] = duration) : (raise Exception("Illegal duration %s" % duration))
     end
-    self.request('RenewInstance', *kwargs)
+    request('RenewInstance', *kwargs)
   end
 
   # 获取虚拟机的租期信息
@@ -101,7 +101,7 @@ class MOS::Client
   def get_instance_contract_info(iid)
     kwargs = {}
     kwargs['InstanceId'] = iid
-    self.request('GetInstanceContractInfo', *kwargs)
+    request('GetInstanceContractInfo', *kwargs)
   end
 
   # 创建虚拟机,创建时要提供datadisk和bandwidth参数
@@ -113,19 +113,21 @@ class MOS::Client
   # - @param [Integer] datadisk 指定创建虚拟机使用的额外数据盘，单位为1GB
   # - @param [Integer] bandwidth 指定创建虚拟机使用的额外带宽，单位为Mbps
   # - @return [Hash]   创建成功的虚拟机信息
-  def create_instance(imageid, itype, duration=nil, name=nil, keypair=nil, datadisk=nil, bandwidth=nil)
+  def create_instance(imageid, itype, duration = nil, name = nil, keypair = nil, secgroup = nil, datadisk = nil, bandwidth = nil, zone = nil)
     kwargs = {}
     kwargs['ImageId'] = imageid
     kwargs['InstanceType'] = itype
     unless duration.nil?
-      /^\d+[HhMm]$/.match(duration) ? kwargs['Duration'] = duration : (raise Exception('Illegal duration format'))
+      /^\d+[HhMm]$/ =~ duration ? kwargs['Duration'] = duration : (raise Exception('Illegal duration format'))
     end
 
     kwargs['InstanceName'] = name unless name.nil?
     kwargs['KeyName'] = keypair unless keypair.nil?
     kwargs['ExtraExtDisksize'] = datadisk unless datadisk.nil?
     kwargs['ExtraExtBandwidth'] = bandwidth unless bandwidth.nil?
-    val = self.request('CreateInstance', *kwargs)
+    kwargs['GroupId'] = secgroup unless secgroup.nil?
+    kwargs['AvailabilityZoneId'] = zone unless zone.nil?
+    val = request('CreateInstance', *kwargs)
     val['Instance']
   end
 
@@ -135,7 +137,7 @@ class MOS::Client
   def describe_instance_status(iid)
     kwargs = {}
     kwargs['InstanceId'] = iid
-    val = self.request('DescribeInstanceStatus', *kwargs)
+    val = request('DescribeInstanceStatus', *kwargs)
     val['InstanceStatus']
   end
 
@@ -143,11 +145,11 @@ class MOS::Client
   # - @param [String] iid 虚拟机ID
   # - @param [String] key_file 私钥文件路径，如果虚拟机使用了SSH密钥，需要指定私钥解密password
   # - @return [Hash] 虚拟机Login信息，包含帐户名称、密码，如果使用SSH密钥，则还包含密钥ID和名称
-  def get_password_data(iid, key_file=nil)
+  def get_password_data(iid, key_file = nil)
     kwargs = {}
     kwargs['InstanceId'] = iid
-    val = self.request('GetPasswordData', *kwargs)
-    if val.has_key?('passwordData') && val.has_key?('keypairName')
+    val = request('GetPasswordData', *kwargs)
+    if val.key?('passwordData') && val.key?('keypairName')
       if key_file.nil?
         raise Exception('Password is encrypted, please specify private key of keypair %s' % val['keypairName'])
       else
@@ -158,10 +160,10 @@ class MOS::Client
           exit(-1)
         end
 
-        key = f.read()
-        f.close()
-        val['passwordData']=Base64.decode64(
-            OpenSSL::HMAC.digest(OpenSSL::Digest.new('sha256'), key, val['passwordData'])
+        key = f.read
+        f.close
+        val['passwordData'] = Base64.decode64(
+          OpenSSL::HMAC.digest(OpenSSL::Digest.new('sha256'), key, val['passwordData'])
         ).strip
       end
     end
@@ -173,17 +175,17 @@ class MOS::Client
   def start_instance(iid)
     kwargs = {}
     kwargs['InstanceId'] = iid
-    self.request('StartInstance', *kwargs)
+    request('StartInstance', *kwargs)
   end
 
   # 停止虚拟机
   # - @param [String] iid 虚拟机ID
   # - @param [] force 是否强制停止虚拟机
-  def stop_instance(iid, force=false)
+  def stop_instance(iid, force = false)
     kwargs = {}
     kwargs['InstanceId'] = iid
     kwargs['Force'] = force if force
-    self.request('StopInstance', *kwargs)
+    request('StopInstance', *kwargs)
   end
 
   # 重启虚拟机
@@ -191,7 +193,7 @@ class MOS::Client
   def reboot_instance(iid)
     kwargs = {}
     kwargs['InstanceId'] = iid
-    self.request('RebootInstance', *kwargs)
+    request('RebootInstance', *kwargs)
   end
 
   # 删除虚拟机
@@ -199,17 +201,17 @@ class MOS::Client
   def terminate_instance(iid)
     kwargs = {}
     kwargs['InstanceId'] = iid
-    self.request('TerminateInstance', *kwargs)
+    request('TerminateInstance', *kwargs)
   end
 
   # 重置虚拟机系统磁盘
   # - @param [String] iid 虚拟机ID
   # - @param [String] image_id 将虚拟机系统磁盘用指定镜像模板重置，如果无该参数，则使用原镜像模板重置
-  def rebuild_instance_root_image(iid, image_id=nil)
+  def rebuild_instance_root_image(iid, image_id = nil)
     kwargs = {}
     kwargs['InstanceId'] = iid
-    kwargs['ImageId'] = image_id if !(image_id.nil?) && image_id.size > 0
-    self.request('RebuildInstanceRootImage', *kwargs)
+    kwargs['ImageId'] = image_id if !image_id.nil? && !image_id.empty?
+    request('RebuildInstanceRootImage', *kwargs)
   end
 
   # 更改虚拟机类型
@@ -219,18 +221,18 @@ class MOS::Client
   # - @param [Integer] datadisk 指定创建虚拟机使用的额外数据盘，单位为1GB
   # - @param [Integer] bandwidth 指定创建虚拟机使用的额外带宽，单位为Mbps
   # - 省略datadisk和bandwidth参数无法成功修改，具体用法可参考对应测试样例
-  def change_instance_type(iid, itype, duration=nil, datadisk=nil, bandwidth=nil)
+  def change_instance_type(iid, itype, duration = nil, datadisk = nil, bandwidth = nil)
     kwargs = {}
     kwargs['InstanceId'] = iid
     kwargs['InstanceType'] = itype
     unless duration.nil?
-      /^\d+[HhMm]$/.match(duration) ? kwargs['Duration'] = duration : (raise Exception('Illegal duration format'))
+      /^\d+[HhMm]$/ =~ duration ? kwargs['Duration'] = duration : (raise Exception('Illegal duration format'))
     end
 
     kwargs['ExtraExtDisksize'] = datadisk unless datadisk.nil?
     kwargs['ExtraExtBandwidth'] = bandwidth unless bandwidth.nil?
 
-    self.request('ChangeInstanceType', *kwargs)
+    request('ChangeInstanceType', *kwargs)
   end
 
   # 获取虚拟机的metadata
@@ -239,7 +241,7 @@ class MOS::Client
   def get_instance_metadata(iid)
     kwargs = {}
     kwargs['InstanceId'] = iid
-    val = self.request('GetInstanceMetadata', *kwargs)
+    val = request('GetInstanceMetadata', *kwargs)
     val['InstanceMetadata']
   end
 
@@ -257,7 +259,7 @@ class MOS::Client
     end
     kwargs['Name'] = names
     kwargs['Value'] = values
-    self.request('PutInstanceMetadata', *kwargs)
+    request('PutInstanceMetadata', *kwargs)
   end
 
   # 获取用户的SSH密钥对
@@ -265,10 +267,10 @@ class MOS::Client
   # - @param [Integer] offset 返回偏移量，用于分页控制
   # - @param [Hash] filters 过滤条件，key/value分别指定过滤字段名称和值，支持的字段名称为：name
   # - @return [Hash]  包含SSH密钥对列表
-  def describe_key_pairs(limit=0, offset=0, filters=nil)
+  def describe_key_pairs(limit = 0, offset = 0, filters = nil)
     kwargs = {}
-    self.parse_array_params(limit, offset, filters, kwargs)
-    val = self.request('DescribeKeyPairs', *kwargs)
+    parse_array_params(limit, offset, filters, kwargs)
+    val = request('DescribeKeyPairs', *kwargs)
     val['KeyPairSet']
   end
 
@@ -280,7 +282,7 @@ class MOS::Client
     kwargs = {}
     kwargs['KeyName'] = name
     kwargs['PublicKeyMaterial'] = pubkey
-    val = self.request('ImportKeyPair', *kwargs)
+    val = request('ImportKeyPair', *kwargs)
     val['KeyPair']
   end
 
@@ -289,7 +291,7 @@ class MOS::Client
   def delete_key_pair(kid)
     kwargs = {}
     kwargs['KeyName'] = kid
-    self.request('DeleteKeyPair', *kwargs)
+    request('DeleteKeyPair', *kwargs)
   end
 
   # 保存虚拟机的模板
@@ -297,12 +299,12 @@ class MOS::Client
   # - @param [String] name 模板名称
   # - @param [String] notes 保存模板的说明
   # - @return [Hash] 请求是否成功
-  def create_template(iid, name, notes=nil)
+  def create_template(iid, name, notes = nil)
     kwargs = {}
     kwargs['InstanceId'] = iid
     kwargs['Name'] = name
     kwargs['Notes'] = notes unless notes.nil?
-    self.request('CreateTemplate', *kwargs)
+    request('CreateTemplate', *kwargs)
   end
 
   # 删除一个模板
@@ -310,6 +312,6 @@ class MOS::Client
   def delete_template(tid)
     kwargs = {}
     kwargs['TemplateId'] = tid
-    self.request('DeleteTemplate', *kwargs)
+    request('DeleteTemplate', *kwargs)
   end
 end
