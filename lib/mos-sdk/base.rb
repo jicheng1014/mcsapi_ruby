@@ -139,9 +139,10 @@ class MOS::Base
         body = JSON.parse(body)
       else
         body = Crack::XML.parse(body)
-        body["#{action}Response"]
       end
+      body["#{action}Response"]
     rescue
+      puts "body analysis fail ... return body"
       return body
     end
   end
